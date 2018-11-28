@@ -13,9 +13,18 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "William Viker <william@bitfocus.io> / Pierre-Yves Merle <pimerle@student.le-101.fr>",
+  "author": "William Viker <william@bitfocus.io>",
   "license": "ISC",
   "dependencies": {
     "obs-websocket-js": "^1.2.0"
-  }
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pierreyves258/companion-module-obs-studio.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pierreyves258/companion-module-obs-studio/issues"
+  },
+  "homepage": "https://github.com/pierreyves258/companion-module-obs-studio#readme"
 }
