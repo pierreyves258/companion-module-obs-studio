@@ -185,6 +185,18 @@ instance.prototype.actions = function() {
 					choices: self.scenelist
 				}
 			]
+		},
+		'set_preview': {
+			label: 'Change preview',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Preview',
+					id: 'preview',
+					default: '0',
+					choices: self.scenelist
+				}
+			]
 		}
 	});
 }
@@ -197,6 +209,12 @@ instance.prototype.action = function(action) {
 	if (action.action == 'set_scene') {
 		self.obs.setCurrentScene({
 			'scene-name': action.options.scene
+		});
+	}
+
+	if (action.action == 'set_preview') {
+		self.obs.setPreviewScene({
+			'scene-name': action.options.preview
 		});
 	}
 
@@ -257,6 +275,32 @@ instance.prototype.init_feedbacks = function() {
 		]
 	};
 
+	feedbacks['preview_active'] = {
+		label: 'Change colors from active preview',
+		description: 'If the preview specified is active in OBS, change colors of the bank',
+		options: [
+			{
+				type: 'colorpicker',
+				label: 'Foreground color',
+				id: 'fg',
+				default: self.rgb(255,255,255)
+			},
+			{
+				type: 'colorpicker',
+				label: 'Background color',
+				id: 'bg',
+				default: self.rgb(0,255,0)
+			},
+			{
+				 type: 'dropdown',
+				 label: 'Scene',
+				 id: 'preview',
+				 default: '',
+				 choices: self.scenelist
+			}
+		]
+	};
+
 	self.setFeedbackDefinitions(feedbacks);
 };
 
@@ -265,6 +309,12 @@ instance.prototype.feedback = function(feedback, bank) {
 
 	if (feedback.type == 'scene_active') {
 		if (self.states['scene_active'] == feedback.options.scene) {
+			return { color: feedback.options.fg, bgcolor: feedback.options.bg };
+		}
+	}
+
+	if (feedback.type == 'preview_active') {
+		if (self.states['preview_active'] == feedback.options.preview) {
 			return { color: feedback.options.fg, bgcolor: feedback.options.bg };
 		}
 	}
@@ -303,6 +353,12 @@ instance.prototype.init_presets = function () {
 						bg: self.rgb(255,0,0),
 						fg: self.rgb(255,255,255),
 						scene: scene.name,
+					},
+					type: 'preview_active',
+					options: {
+						bg: self.rgb(255,0,0),
+						fg: self.rgb(255,255,255),
+						scene: preview.name,
 					}
 				}
 			],
@@ -311,6 +367,10 @@ instance.prototype.init_presets = function () {
 					action: 'set_scene',
 					options: {
 						scene: scene.name
+					},
+					action: 'set_preview',
+					options: {
+						scene: preview.name
 					}
 				}
 			]
