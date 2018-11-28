@@ -1,12 +1,12 @@
 {
-  "name": "obs-studio-mod",
-  "version": "1.0.0",
-  "api_version": "1.0.0",
+  "name": "obs-studio",
+  "version": "1.1.0",
+  "api_version": "1.1.0",
   "keywords": [
     "Stream"
   ],
   "manufacturer": "OBS",
-  "product": "Studio Mod",
+  "product": "Studio",
   "shortname": "obs",
   "description": "OBS Studio plugin for companion",
   "main": "index.js",
