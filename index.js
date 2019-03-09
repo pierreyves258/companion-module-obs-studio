@@ -34,6 +34,7 @@ instance.prototype.init = function() {
 	self.states = {};
 	self.scenes = {};
 	self.active_scene = "";
+	self.active_preview = "";
 
 	self.obs.connect({
 		address: (self.config.host !== '' ? self.config.host : '127.0.0.1') + ':' + (self.config.port !== '' ? self.config.port : '4444'),
@@ -74,6 +75,16 @@ instance.prototype.init = function() {
 
 	self.obs.on('StreamStatus', function(data) {
 		self.process_stream_vars(data);
+	});
+
+	self.obs.on('PreviewSceneChanged', function (data)
+	{
+		console.log('PRVCHANGE', data);
+		self.active_preview = data.sceneName;	
+		console.log('PRVCHANGE_SELF', self.active_preview);
+		self.states['preview_active'] = data['scene-name'];
+		self.checkFeedbacks('preview_active');
+
 	});
 
 	debug = self.debug;
@@ -136,6 +147,26 @@ instance.prototype.updateScenes = function() {
 	var self = this;
 	console.log("updateScenes()");
 
+	self.obs.getSourcesList().then(data => {
+		console.log('SourcesList', data);
+		self.sources = {};
+		for (var s in data.sources) {
+			var source = data.sources[s];
+			self.sources[source.name] = source;
+		}
+	});
+
+	self.obs.getTransitionList().then(data => {
+		console.log('TransitionList', data);
+		self.transitions = {};
+		for (var s in data.transitions) {
+			var transition = data.transitions[s];
+			self.transitions[transition.name] = transition;
+		}
+		console.log('TransitionListSELF', self.transitions);
+	});
+
+
 	self.obs.getSceneList().then(data => {
 		self.scenes = {};
 		self.active_scene = "";
@@ -143,6 +174,7 @@ instance.prototype.updateScenes = function() {
 			var scene = data.scenes[s];
 			self.scenes[scene.name] = scene;
 		}
+
 		self.actions();
 		self.init_presets();
 		self.init_feedbacks();
@@ -171,6 +203,29 @@ instance.prototype.actions = function() {
 			self.scenelist.push({ id: s, label: s });
 		}
 	}
+	/*self.sourcelist = [];
+	if (self.sources !== undefined) {
+		for (var s in self.sources) {
+			self.sourcelist.push({ id: s, label: s });
+		}
+	}*/
+	self.sourcelist = self.scenelist;
+
+	//self.transitionlist = [];
+	//self.transitionlist.push({ id: 'cut', label: 'cut' });
+
+	self.visibilitylist = [];
+	self.visibilitylist.push({ id: '1', label: '1' });
+	self.visibilitylist.push({ id: '0', label: '0' });
+
+	self.transitionlist = [];
+	if (self.transitions !== undefined) {
+		for (var s in self.transitions) {
+			self.transitionlist.push({ id: s, label: s });
+		}
+	}
+	console.log('SELF.TRANSITION', self.transitions);
+	console.log('SELF.TRANSITIONLIST', self.transitionlist);
 
 	self.system.emit('instance_actions', self.id, {
 
@@ -197,6 +252,37 @@ instance.prototype.actions = function() {
 					choices: self.scenelist
 				}
 			]
+		},
+		'set_transition': {
+			label: 'Transition',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Transition',
+					id: 'trans',
+					default: '0',
+					choices: self.transitionlist
+				}
+			]
+		},
+		'set_item_visibility': {
+			label: 'Change item visibility',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Item',
+					id: 'item',
+					default: '0',
+					choices: self.sourcelist
+				},
+				{
+					type: 'dropdown',
+					label: 'visibility',
+					id: 'visibility',
+					default: '0',
+					choices: self.visibilitylist
+				}
+			]
 		}
 	});
 }
@@ -217,6 +303,22 @@ instance.prototype.action = function(action) {
 			'scene-name': action.options.preview
 		});
 	}
+
+	if (action.action == 'set_transition') {
+		self.obs.TransitionToProgram({
+			'with-transition': action.options.trans
+		});
+	}
+
+	if (action.action == 'set_item_visibility') {
+		self.obs.SetSceneItemProperties({
+			'scene-name': self.active_preview,
+			'item': action.options.item,
+			'item-visible': action.options.visibility,
+			'visible': action.options.visibility
+		});
+	}
+
 
 };
 
@@ -263,7 +365,7 @@ instance.prototype.init_feedbacks = function() {
 				type: 'colorpicker',
 				label: 'Background color',
 				id: 'bg',
-				default: self.rgb(0,255,0)
+				default: self.rgb(255,0,0)
 			},
 			{
 				 type: 'dropdown',
@@ -293,7 +395,7 @@ instance.prototype.init_feedbacks = function() {
 			},
 			{
 				 type: 'dropdown',
-				 label: 'Scene',
+				 label: 'Preview',
 				 id: 'preview',
 				 default: '',
 				 choices: self.scenelist
@@ -343,8 +445,8 @@ instance.prototype.init_presets = function () {
 				style: 'text',
 				text: scene.name,
 				size: 'auto',
-				color: self.rgb(255,255,255),
-				bgcolor: 0
+				color: self.rgb(0,0,0),
+				bgcolor: self.rgb(255,255,255),
 			},
 			feedbacks: [
 				{
@@ -353,12 +455,6 @@ instance.prototype.init_presets = function () {
 						bg: self.rgb(255,0,0),
 						fg: self.rgb(255,255,255),
 						scene: scene.name,
-					},
-					type: 'preview_active',
-					options: {
-						bg: self.rgb(255,0,0),
-						fg: self.rgb(255,255,255),
-						scene: preview.name,
 					}
 				}
 			],
@@ -367,10 +463,63 @@ instance.prototype.init_presets = function () {
 					action: 'set_scene',
 					options: {
 						scene: scene.name
-					},
+					}
+				}
+			]
+		});
+
+		presets.push({
+			category: 'Previews',
+			label: scene.name,
+			bank: {
+				style: 'text',
+				text: scene.name,
+				size: 'auto',
+				color: self.rgb(255,255,255),
+				bgcolor: 0
+			},
+			feedbacks: [
+				{
+					type: 'preview_active',
+					options: {
+						fg: self.rgb(0,0,0),
+						bg: self.rgb(0, 204, 0),
+						preview: scene.name,
+					}
+				}
+			],
+			actions: [
+				{
 					action: 'set_preview',
 					options: {
-						scene: preview.name
+						preview: scene.name
+					}
+				}
+			]
+		});
+
+	}
+
+	for (var s in self.transitions) {
+		var transition = self.transitions[s];
+
+		presets.push({
+			category: 'Transitions',
+			label: transition.name,
+			bank: {
+				style: 'text',
+				text: transition.name,
+				size: 'auto',
+				color: self.rgb(255,255,255),
+				bgcolor: 0
+			},
+			feedbacks: [
+			],
+			actions: [
+				{
+					action: 'set_transition',
+					options: {
+						trans: transition.name
 					}
 				}
 			]

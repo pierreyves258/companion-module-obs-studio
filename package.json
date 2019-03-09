@@ -13,7 +13,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "William Viker <william@bitfocus.io>",
+  "author": "William Viker <william@bitfocus.io> & Pierre-Yves Merle <p.merle@netfreaks.fr>",
   "license": "ISC",
   "dependencies": {
     "obs-websocket-js": "^1.2.0"
